@@ -8,6 +8,13 @@ struct proto	proto_v6 = { proc_v6, send_v6, NULL, NULL, 0, IPPROTO_ICMPV6 };
 
 int	datalen = 56;		/* data that goes with ICMP echo request */
 
+/*
+optarg 保存选项的参数
+optind 检索下一个参数	初值为1
+opterr 是否将错误信息输出到stderr (0表示不输出) 初值为1
+optopt 表示不在选项字符串optstring中的选项（
+*/
+
 int
 main(int argc, char **argv)
 {
@@ -27,18 +34,18 @@ main(int argc, char **argv)
 
 	if (optind != argc - 1)
 		err_quit("usage: ping [ -v ] <hostname>");
-	host = argv[optind];
+	host = argv[optind];	// optind = argc - 1 目的 hostname / IP地址	 
 
 	pid = getpid();
 	signal(SIGALRM, sig_alrm);
 
-	ai = host_serv(host, NULL, 0, 0);
+	ai = host_serv(host, NULL, 0, 0);	//获得目的主机的addrinfo 结构函数
 
 	printf("ping %s (%s): %d data bytes\n", ai->ai_canonname,
 		Sock_ntop_host(ai->ai_addr, ai->ai_addrlen), datalen);
 
 		/* 4initialize according to protocol */
-	if (ai->ai_family == AF_INET) {
+	if (ai->ai_family == AF_INET) { 		//AF_INET 2 IPv4
 		pr = &proto_v4;
 #ifdef	IPV6
 	} else if (ai->ai_family == AF_INET6) {
@@ -218,7 +225,7 @@ readloop(void)
 	ssize_t			n;
 	struct timeval	tval;
 
-	sockfd = socket(pr->sasend->sa_family, SOCK_RAW, pr->icmpproto);
+	sockfd = socket(pr->sasend->sa_family, SOCK_RAW, pr->icmpproto);	// SOCK_RAW 提供原始网络协议访问
 	setuid(getuid());		/* don't need special permissions any more */
 
 	size = 60 * 1024;		/* OK if setsockopt fails */
@@ -241,6 +248,7 @@ readloop(void)
 	}
 }
 
+// sig_alrm信号处理函数。他发送一个ICMP回射请求，然后调度下一次sig_alrm在一秒后产生
 void
 sig_alrm(int signo)
 {
@@ -317,29 +325,31 @@ Sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
         return(ptr);
 }
 
+//将主机名或主机IP地址转换为addrinfo结构函数
 struct addrinfo *
-host_serv(const char *host, const char *serv, int family, int socktype)
+host_serv(const char *host, const char *serv, int family, int socktype)		// family and socktype equals 0
 {
         int                             n;
         struct addrinfo hints, *res;
 
         bzero(&hints, sizeof(struct addrinfo));
-        hints.ai_flags = AI_CANONNAME;  /* always return canonical name */
-        hints.ai_family = family;               /* AF_UNSPEC, AF_INET, AF_INET6, etc. */
-        hints.ai_socktype = socktype;   /* 0, SOCK_STREAM, SOCK_DGRAM, etc. */
+        hints.ai_flags = AI_CANONNAME;  /* always return canonical name */	//2用于返回主机的规范名称
+        hints.ai_family = family;       /* AF_UNSPEC, AF_INET, AF_INET6, etc. */  //也就是AF_UNSPEC 0 协议无关
+        hints.ai_socktype = socktype;   /* 0, SOCK_STREAM, SOCK_DGRAM, etc. */	// 0字段表示任何类型的套接字地址都可以
 
-        if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0)
-                return(NULL);
+        if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0)		//返回非0，表示出错
+                return(NULL);		
 
         return(res);    /* return pointer to first on linked list */
 }
 /* end host_serv */
 
+//输出错误提示并返回调用函数
 static void
 err_doit(int errnoflag, int level, const char *fmt, va_list ap)
 {
-        int             errno_save, n;
-        char    buf[MAXLINE];
+        int errno_save, n;
+        char buf[MAXLINE];
 
         errno_save = errno;             /* value caller might want printed */
 #ifdef  HAVE_VSNPRINTF
@@ -383,9 +393,10 @@ err_quit(const char *fmt, ...)
 void
 err_sys(const char *fmt, ...)
 {
-        va_list         ap;
+        va_list         ap;		//变长参数
 
         va_start(ap, fmt);
+		//printf("YES\n");
         err_doit(1, LOG_ERR, fmt, ap);
         va_end(ap);
         exit(1);

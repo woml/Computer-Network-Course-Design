@@ -59,8 +59,8 @@ void err_sys(const char *fmt, ...);
 struct proto {
   void	 (*fproc)(char *, ssize_t, struct timeval *);
   void	 (*fsend)(void);
-  struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */
-  struct sockaddr  *sarecv;	/* sockaddr{} for receiving */
+  struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */ //sockaddr send -> sasend
+  struct sockaddr  *sarecv;	/* sockaddr{} for receiving */              //sockaddr recive -> sarecv
   socklen_t	    salen;		/* length of sockaddr{}s */
   int	   	    icmpproto;	/* IPPROTO_xxx value for ICMP */
 } *pr;
