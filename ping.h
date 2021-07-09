@@ -29,6 +29,8 @@
 #define BUFSIZE	1500      //缓冲区的最大长度
 #define MAXLINE 4096      //一行的最大长度
 
+//#define 
+
 /* globals */
 char recvbuf[BUFSIZE];    //接收缓冲区
 char sendbuf[BUFSIZE];    //发送缓冲区
@@ -41,6 +43,17 @@ int	sockfd;     //套接口描述字
 int	verbose;    //是否详尽输出
 int daemon_proc;            /* set nonzero by daemon_init() */
 
+const char *usage = 
+  "usage: ping [-bhqvt:] <hostname>\n \
+  -h Show help information\n \
+  -v Normal mode\n \
+  -b Broadcast\n \
+  -t ttl Set TTL(0~255)\n \
+  -q Quiet mode\n";
+
+
+int op;     //操作
+
 /* function prototypes */
 void	 proc_v4(char *, ssize_t, struct timeval *);
 void	 proc_v6(char *, ssize_t, struct timeval *);
@@ -49,6 +62,7 @@ void	 send_v6(void);
 void	 readloop(void);
 void	 sig_alrm(int);
 void	 tv_sub(struct timeval *, struct timeval *);
+void   show_help();
 
 char * Sock_ntop_host(const struct sockaddr *sa, socklen_t salen);
 struct addrinfo* host_serv(const char *host, const char *serv, int family, int socktype);

@@ -22,10 +22,13 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "v")) != -1) {
+	while ( (c = getopt(argc, argv, "qhbvt:")) != -1) {
 		switch (c) {
 		case 'v':
 			verbose++;
+			break;
+		case 'h':
+			show_help();
 			break;
 		case '?':
 			err_quit("unrecognized option: %c", c);
@@ -193,6 +196,12 @@ send_v4(void)
 	icmp->icmp_cksum = in_cksum((u_short *) icmp, len);
 
 	sendto(sockfd, sendbuf, len, 0, pr->sasend, pr->salen);
+	/*
+		sockfd为套接口描述字，sendbuf为发送数据缓冲区，len是发送数据缓冲区大小
+		0是flag参数，pr->sasend是指向目的主机数据结构sockaddr_in的指针，接收
+		数据的主机地址信息放在这个结构中。pr->salen为pr->sasend所指向的数据结构
+		的长度。
+	*/
 }
 
 void
@@ -230,14 +239,24 @@ readloop(void)
 
 	size = 60 * 1024;		/* OK if setsockopt fails */
 	setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+	/*
+		SOL_SOCKET为操作套接口层的选项，SO_RCVBUF为optname表示接收缓冲区大小，size为optval 
+		int
+	*/
 
 	sig_alrm(SIGALRM);		/* send first packet */
 
 	for ( ; ; ) {
 		len = pr->salen;
 		n = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, pr->sarecv, &len);
+		/*
+			recvbuf为接收数据缓冲区，接收到的数据将发在这个指针所指向的内存空间。sizeof(recvbuf)
+			为接收缓冲区的大小，防止溢出。0为flag参数。pr->sarecv指向数据结构sockaddr_in的指针，
+			发送数据时的发送方地址信息放在这个结构中。len为sockaddr_in的结构长度。返回值成功则返回
+			接收到的字符数，失败则返回-1，错误原因存于errno中
+		*/
 		if (n < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR)		//被信号中断
 				continue;
 			else
 				err_sys("recvfrom error");
@@ -280,6 +299,10 @@ sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
         case AF_INET: {
                 struct sockaddr_in      *sin = (struct sockaddr_in *) sa;
 
+				/* 
+					将二进制的IP地址转换字符串 AF_INET是网络类型协议族，IPv4。&sin->sin_addr
+					为要转化的二进制IP地址，str指向转换之后的结果的指针，cnt为str缓冲区大小
+				*/
                 if (inet_ntop(AF_INET, &sin->sin_addr, str, sizeof(str)) == NULL)
                         return(NULL);
                 return(str);
@@ -339,7 +362,11 @@ host_serv(const char *host, const char *serv, int family, int socktype)		// fami
 
         if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0)		//返回非0，表示出错
                 return(NULL);		
-
+		/*
+			host为主机名或地址串，serv为一个服务名或10进制端口号字符串。hint为一个空指针
+			或者指向addrinfo结构的智者嗯，调用者在这个结构中填入关于所期望返回的信息类型的
+			线索。res为i指向一个addrinfo结构链表的指针。
+		*/
         return(res);    /* return pointer to first on linked list */
 }
 /* end host_serv */
@@ -400,4 +427,9 @@ err_sys(const char *fmt, ...)
         err_doit(1, LOG_ERR, fmt, ap);
         va_end(ap);
         exit(1);
+}
+
+void show_help() {
+	printf("%s", usage);
+	exit(0);
 }
