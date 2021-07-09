@@ -69,6 +69,10 @@ main(int argc, char **argv)
 	exit(0);
 }
 
+/*
+ *	ptr 为剥去了以太网部分的IP数据报，len为数据长度。利用IP头部的参数快速跳到ICMP报文部分，IP结构
+ *	的ip_hl标识IP头部的长度,ip_hl标识4字节单位，所以 << 2
+ */
 void
 proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 {
@@ -82,11 +86,11 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 	hlen1 = ip->ip_hl << 2;		/* length of IP header */
 
 	icmp = (struct icmp *) (ptr + hlen1);	/* start of ICMP header */
-	if ( (icmplen = len - hlen1) < 8)
+	if ( (icmplen = len - hlen1) < 8)	//判断长度是否为ICMP包
 		err_quit("icmplen (%d) < 8", icmplen);
 
-	if (icmp->icmp_type == ICMP_ECHOREPLY) {
-		if (icmp->icmp_id != pid)
+	if (icmp->icmp_type == ICMP_ECHOREPLY) {	/*ICMP包类型为ICMP_ECHOREPLY（也就是reply）*/
+		if (icmp->icmp_id != pid)	//进程不是本进程PID 退出
 			return;			/* not a response to our ECHO_REQUEST */
 		if (icmplen < 16)
 			err_quit("icmplen (%d) < 16", icmplen);
@@ -98,7 +102,9 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		printf("%d bytes from %s: seq=%u, ttl=%d, rtt=%.3f ms\n",
 				icmplen, Sock_ntop_host(pr->sarecv, pr->salen),
 				icmp->icmp_seq, ip->ip_ttl, rtt);
-
+		/*	
+		 *	打印结果，包含
+		 */
 	} else if (verbose) {
 		printf("  %d bytes from %s: type = %d, code = %d\n",
 				icmplen, Sock_ntop_host(pr->sarecv, pr->salen),
@@ -150,8 +156,8 @@ proc_v6(char *ptr, ssize_t len, struct timeval* tvrecv)
 unsigned short
 in_cksum(unsigned short *addr, int len)
 {
-        int                             nleft = len;
-        int                             sum = 0;
+        int nleft = len;
+        int sum = 0;
         unsigned short  *w = addr;
         unsigned short  answer = 0;
 
@@ -160,20 +166,20 @@ in_cksum(unsigned short *addr, int len)
          * sequential 16 bit words to it, and at the end, fold back all the
          * carry bits from the top 16 bits into the lower 16 bits.
          */
-        while (nleft > 1)  {
-                sum += *w++;
+        while (nleft > 1)  {	//将数据按照2字节为单位累加起来
+                sum += *w++;	// unsigned short ++ 每次+2
                 nleft -= 2;
         }
 
-                /* 4mop up an odd byte, if necessary */
-        if (nleft == 1) {
+        /* 4mop up an odd byte, if necessary */
+        if (nleft == 1) {		//如果ICMP报头为奇数个字节，会剩下最后一个字节
                 *(unsigned char *)(&answer) = *(unsigned char *)w ;
                 sum += answer;
         }
 
                 /* 4add back carry outs from top 16 bits to low 16 bits */
         sum = (sum >> 16) + (sum & 0xffff);     /* add hi 16 to low 16 */
-        sum += (sum >> 16);                     /* add carry */
+        sum += (sum >> 16);                     /* add carry */ 			//将溢出位加入
         answer = ~sum;                          /* truncate to 16 bits */
         return(answer);
 }
@@ -185,15 +191,16 @@ send_v4(void)
 	struct icmp	*icmp;
 
 	icmp = (struct icmp *) sendbuf;
-	icmp->icmp_type = ICMP_ECHO;
-	icmp->icmp_code = 0;
+	icmp->icmp_type = ICMP_ECHO;		//ICMP回显请求
+	icmp->icmp_code = 0;				//code值为0
 	icmp->icmp_id = pid;
-	icmp->icmp_seq = nsent++;
-	gettimeofday((struct timeval *) icmp->icmp_data, NULL);
+	icmp->icmp_seq = nsent++;			//本报的序列号，唯一递增。
+	gettimeofday((struct timeval *) icmp->icmp_data, NULL);		//gettimeofday()会把目前的时间有tv所指的结构返回，当地时区的信息则放到tz所指的结构中。
 
-	len = 8 + datalen;		/* checksum ICMP header and data */
-	icmp->icmp_cksum = 0;
-	icmp->icmp_cksum = in_cksum((u_short *) icmp, len);
+	len = 8 + datalen;		/* checksum ICMP header and data */		// 总长度 默认datelen为56字节 + 1字节类型 + 1字节code + 2字节校验和
+																	// + 2字节id + 2字节seq
+	icmp->icmp_cksum = 0;				//cksum先填0，便于之后的cksum计算
+	icmp->icmp_cksum = in_cksum((u_short *) icmp, len);		//计算校验和
 
 	sendto(sockfd, sendbuf, len, 0, pr->sasend, pr->salen);
 	/*
@@ -281,8 +288,8 @@ void
 tv_sub(struct timeval *out, struct timeval *in)
 {
 	if ( (out->tv_usec -= in->tv_usec) < 0) {	/* out -= in */
-		--out->tv_sec;
-		out->tv_usec += 1000000;
+		--out->tv_sec;		//不够减，借1
+		out->tv_usec += 1000000;	/* 1s = 10^6 us */
 	}
 	out->tv_sec -= in->tv_sec;
 }
