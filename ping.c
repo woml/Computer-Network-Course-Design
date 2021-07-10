@@ -26,13 +26,13 @@ int quitFlag = 0;
 __suseconds_t quiteStart;
 __suseconds_t quiteEnd;
 
-// 记录安静模式下的rtt情况
+// 记录rtt情况
 double quiteMin = (double)INT32_MAX;
-double quiteMax = (double)-1;
+double quiteMax = -1.0;
 double quiteTotal = 0.0;
 double quiteTotalSquare = 0.0;
 
-// -q模式下接收到ctrl+c指令后输出结果的函数
+// 接收ctrl+c指令后输出结果的函数
 void showResult(int sig) {
 	quitFlag = 1;
 	// 计算丢包率
@@ -40,11 +40,14 @@ void showResult(int sig) {
 	printf("\n--- %s ping statistics ---\n", quiteTargetName);
 	printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", nsent, quitePackageSuccess, loss);	
 	double quiteAvg = quiteTotal / nsent;
-	printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
-	quiteMin, 
-	quiteAvg, 
-	quiteMax, 
-	sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
+	if(quiteMin == (double)INT32_MAX || quiteMax == -1.0)
+		;
+	else
+		printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
+		quiteMin, 
+		quiteAvg, 
+		quiteMax, 
+		sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
 }
 
 int
