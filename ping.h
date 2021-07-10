@@ -22,6 +22,8 @@
 #include	<net/if.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <limits.h>
+#include <math.h>
 #ifdef  HAVE_SOCKADDR_DL_STRUCT
 # include       <net/if_dl.h>
 #endif
@@ -38,9 +40,17 @@ char sendbuf[BUFSIZE];    //发送缓冲区
 int datalen;	/* #bytes of data, following ICMP header */ //随ICMP回射请求一起发送的可选数据长度
 char *host;     //目的主机地址
 int	nsent;			/* add 1 for each sendto() */ //每发送一个数据包+1
-pid_t pid;			/* our PID */ //进程号
+pid_t pid;			/* our PID */ 
 int	sockfd;     //套接口描述字
-int	verbose;    //是否详尽输出
+/* 是否详尽输出 */
+int	verbose;    
+/* 是否安静输出 */
+int quite;
+/* 记录安静输出的数据 */
+int quitePackageTotal = 0; // 传送的数据包总数
+int quitePackageSuccess = 0; // 成功传送的数据包总数
+long quiteTransferTime = 0; // 传送数据包过程的时间
+char *quiteTargetName; // 目标主机的IP或者主机名
 int daemon_proc;            /* set nonzero by daemon_init() */
 
 const char *usage = 
@@ -79,12 +89,21 @@ static void err_doit(int errnoflag, int level, const char *fmt, va_list ap);
 void err_quit(const char *fmt, ...);
 void err_sys(const char *fmt, ...);
 
+/*
+ * 处理IPv4和IPv6之间差异的结构体
+ * 
+ */
 struct proto {
   void	 (*fproc)(char *, ssize_t, struct timeval *);
   void	 (*fsend)(void);
   struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */ //sockaddr send -> sasend
   struct sockaddr  *sarecv;	/* sockaddr{} for receiving */              //sockaddr recive -> sarecv
+  /* 两个套接字地址结构指针 */
+  struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */
+  struct sockaddr  *sarecv;	/* sockaddr{} for receiving */
+
+  /* 这两个套接字地址结构的大小及ICMP的协议值 */
   socklen_t	    salen;		/* length of sockaddr{}s */
   int	   	    icmpproto;	/* IPPROTO_xxx value for ICMP */
-} *pr;
+} *pr;  /* 全局指针变量pr将指向IPv4或IPv6的某个proto结构 */
 
