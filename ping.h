@@ -53,6 +53,15 @@ const char *usage =
 
 
 int op;     //操作
+int broadcast;
+int ttl;
+double min_time = -1;
+double max_time = -1;
+double avg_time = -1;
+double stddev_time = -1;
+
+//标志量
+int ttl_flag;
 
 /* function prototypes */
 void	 proc_v4(char *, ssize_t, struct timeval *);

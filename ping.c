@@ -20,7 +20,7 @@ main(int argc, char **argv)
 {
 	int	c;
 	struct addrinfo	*ai;
-
+	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
 	while ( (c = getopt(argc, argv, "qhbvt:")) != -1) {
 		switch (c) {
@@ -30,6 +30,10 @@ main(int argc, char **argv)
 		case 'h':
 			show_help();
 			break;
+		case 't':
+			ttl = strtol(optarg, &end, 10);		//取得数字部分
+			ttl_flag = 1;
+			break;
 		case '?':
 			err_quit("unrecognized option: %c", c);
 		}
@@ -37,6 +41,7 @@ main(int argc, char **argv)
 
 	if (optind != argc - 1)
 		err_quit("usage: ping [ -v ] <hostname>");
+		
 	host = argv[optind];	// optind = argc - 1 目的 hostname / IP地址	 
 
 	pid = getpid();
