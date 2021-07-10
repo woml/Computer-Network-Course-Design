@@ -38,10 +38,10 @@ void quiteShowResult(int sig) {
 	// 判断当前是否为-q指令
 		if(quite) {
 			// 计算丢包率
-			double loss = (double)(quitePackageTotal - quitePackageSuccess) / quitePackageTotal * 100;
+			double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
 			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", quitePackageTotal, quitePackageSuccess, loss);	
-			double quiteAvg = quiteTotal / quitePackageTotal;
+			printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", nsent, quitePackageSuccess, loss);	
+			double quiteAvg = quiteTotal / nsent;
 			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
 			quiteMin, 
 			quiteAvg, 
@@ -186,7 +186,7 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 	/* 设置了-q（安静输出）*/
 	else if (quite) {
 		// icmp->icmp_seq + 1 即传输包总数
-		quitePackageTotal = icmp->icmp_seq + 1; 
+		// quitePackageTotal = icmp->icmp_seq + 1; 
 
 		// icmp->icmp_type = 8 的个数即传输成功的包的个数
 		if(icmp->icmp_type == 8)
