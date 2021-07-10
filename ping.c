@@ -13,17 +13,34 @@ struct proto	proto_v6 = { proc_v6, send_v6, NULL, NULL, 0, IPPROTO_ICMPV6 };
 /* 回射请求发送的可选数据量长度 */
 int	datalen = 56;		/* data that goes with ICMP echo request */
 
-// 指示安静模式停止的指示位
+// 指示停止的指示位
 int quitFlag = 0;
+
+// 记录安静模式下的起止时间
+__suseconds_t quiteStart;
+__suseconds_t quiteEnd;
+
+// 记录安静模式下的rtt情况
+double quiteMin = (double)INT32_MAX;
+double quiteMax = (double)-1;
+double quiteTotal = 0.0;
+double quiteTotalSquare = 0.0;
+
 // -q模式下接收到ctrl+c指令后输出结果的函数
 void quiteShowResult(int sig) {
+	quitFlag = 1;
 	// 判断当前是否为-q指令
 		if(quite) {
 			// 计算丢包率
-			quitFlag = 1;
-			double loss = (double)(quitePackageTotal - quitePackageTotal) / quitePackageTotal;
+			double loss = (double)(quitePackageTotal - quitePackageSuccess) / quitePackageTotal * 100;
 			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d received, %.0lf%% packet loss", quitePackageTotal, quitePackageSuccess, loss);	
+			printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", quitePackageTotal, quitePackageSuccess, loss);	
+			double quiteAvg = quiteTotal / quitePackageTotal;
+			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
+			quiteMin, 
+			quiteAvg, 
+			quiteMax, 
+			sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
 	}
 }
 
@@ -120,7 +137,7 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 	 * 检查标识符字段
 	 * 判断该应答是否是本进程发出的请求
 	 */
-	if (icmp->icmp_type == ICMP_ECHOREPLY && !quite) {
+	if (icmp->icmp_type == ICMP_ECHOREPLY) {
 		if (icmp->icmp_id != pid)
 			return;			/* not a response to our ECHO_REQUEST */
 		if (icmplen < 16)
@@ -131,10 +148,20 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		tv_sub(tvrecv, tvsend);
 		rtt = tvrecv->tv_sec * 1000.0 + tvrecv->tv_usec / 1000.0;
 
+		if(rtt > quiteMax)
+			quiteMax = rtt;
+		if(rtt < quiteMin)
+			quiteMin = rtt;
+		quiteTotal += rtt;
+		quiteTotalSquare += rtt * rtt;
+		
+
 		/* 打印信息 */
-		printf("%d bytes from %s: seq=%u, ttl=%d, rtt=%.3f ms\n",
-				icmplen, Sock_ntop_host(pr->sarecv, pr->salen),
-				icmp->icmp_seq, ip->ip_ttl, rtt);
+		if(!quite) {
+			printf("%d bytes from %s: seq=%u, ttl=%d, rtt=%.3f ms\n",
+					icmplen, Sock_ntop_host(pr->sarecv, pr->salen),
+					icmp->icmp_seq, ip->ip_ttl, rtt);
+		}
 
 	} 
 	/* 设置了-v（详尽输出）*/
@@ -149,10 +176,9 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		// icmp->icmp_seq + 1 即传输包总数
 		quitePackageTotal = icmp->icmp_seq + 1; 
 
-		// icmp->icmp_type = 3 的个数即传输成功的包的个数
+		// icmp->icmp_type = 8 的个数即传输成功的包的个数
 		if(icmp->icmp_type == 8)
 			quitePackageSuccess++;
-		// printf("seq:%d\n", icmp->icmp_seq);
 	}
 }
 
@@ -296,15 +322,16 @@ readloop(void)
 	 */
 	sig_alrm(SIGALRM);		/* send first packet */
 
-	/* 
-	 * 无限循环
-	 * 读入返回的每个分组
-	 */
+	
 	/* 
 	 * 循环结束
 	 * 若处于-q则应该输出结果
 	 */
 	signal(SIGINT, quiteShowResult);
+	/* 
+	 * 无限循环
+	 * 读入返回的每个分组
+	 */
 	for ( ; !quitFlag; ) {
 		len = pr->salen;
 		n = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, pr->sarecv, &len);

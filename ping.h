@@ -22,6 +22,8 @@
 #include	<net/if.h>
 #include <stdarg.h>
 #include <syslog.h>
+#include <limits.h>
+#include <math.h>
 #ifdef  HAVE_SOCKADDR_DL_STRUCT
 # include       <net/if_dl.h>
 #endif
