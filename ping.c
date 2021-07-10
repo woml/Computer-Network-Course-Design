@@ -41,20 +41,19 @@ void quiteShowResult(int sig) {
 	time_pass = end_time.tv_sec * 1000.0 + end_time.tv_usec / 1000.0;
 
 	quitFlag = 1;
-	// 判断当前是否为-q指令
-		if(quite) {
-			// 计算丢包率
-			double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
-			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
-																	, quitePackageSuccess, loss, time_pass);	
-			double quiteAvg = quiteTotal / nsent;
-			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
-			quiteMin, 
-			quiteAvg, 
-			quiteMax, 
-			sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
-	}
+	// 计算丢包率
+	double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
+	printf("\n--- %s ping statistics ---\n", quiteTargetName);
+	printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
+															, quitePackageSuccess, loss, time_pass);	
+	double quiteAvg = quiteTotal / nsent;
+	printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
+	quiteMin, 
+	quiteAvg, 
+	quiteMax, 
+	sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
+	close(sockfd);
+	exit(1);
 }
 
 int
@@ -83,13 +82,20 @@ main(int argc, char **argv)
 		case 'q':
 			quite++;
 			break;
+		case 'b':
+			broadcast = 1;
+			break;
 		case '?':
 			err_quit("unrecognized option: %c", c);
+		default:
+			show_help();
 		}
+
 	}
 
-	if (optind != argc - 1)
-		err_quit("usage: ping [ -v ] <hostname>");
+	if (optind != argc - 1) {
+		show_help();
+	}
 		
 	host = argv[optind];	// optind = argc - 1 目的 hostname / IP地址	 
 
@@ -180,6 +186,7 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		quiteTotal += rtt;
 		quiteTotalSquare += rtt * rtt;
 		
+		has_received = 1;
 
 		/* 打印信息 */
 		if(!quite) {
@@ -282,6 +289,7 @@ in_cksum(unsigned short *addr, int len)
 void
 send_v4(void)
 {
+	if ((!quite) && (!has_received)) printf("Request timeout for icmp_seq %d\n", nsent - 1);
 	int			len;
 	struct icmp	*icmp;
 
@@ -297,6 +305,7 @@ send_v4(void)
 	icmp->icmp_cksum = 0;				//cksum先填0，便于之后的cksum计算
 	icmp->icmp_cksum = in_cksum((u_short *) icmp, len);		//计算校验和
 
+	has_received = 0;
 	sendto(sockfd, sendbuf, len, 0, pr->sasend, pr->salen);
 	/*
 		sockfd为套接口描述字，sendbuf为发送数据缓冲区，len是发送数据缓冲区大小
@@ -352,9 +361,11 @@ readloop(void)
 		SOL_SOCKET为操作套接口层的选项，SO_RCVBUF为optname表示接收缓冲区大小，size为optval 
 		int
 	*/
-	if (ttl_flag) {
+	if (ttl_flag == 1) {
 		setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) ;
-		
+	}
+	if (broadcast == 1) {
+		setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
 	}
 	/* 
 	 * 发送第一个分组
