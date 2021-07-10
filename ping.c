@@ -40,7 +40,7 @@ void showResult(int sig) {
 	// 计算丢包率
 	double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
 	printf("\n--- %s ping statistics ---\n", quiteTargetName);
-	printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
+	printf("%d packets transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
 															, quitePackageSuccess, loss, time_pass);	
 	double quiteAvg = quiteTotal / nsent;
 	if(quiteMin == (double)INT32_MAX || quiteMin == -1.0)
