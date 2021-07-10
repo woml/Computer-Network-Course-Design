@@ -71,6 +71,7 @@ main(int argc, char **argv)
 		case 't':
 			ttl = strtol(optarg, &end, 10);		//取得数字部分
 			ttl_flag = 1;
+			break;
 		case 'q':
 			quite++;
 			break;
