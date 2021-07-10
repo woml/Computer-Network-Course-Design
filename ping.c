@@ -33,21 +33,18 @@ double quiteTotal = 0.0;
 double quiteTotalSquare = 0.0;
 
 // -q模式下接收到ctrl+c指令后输出结果的函数
-void quiteShowResult(int sig) {
+void showResult(int sig) {
 	quitFlag = 1;
-	// 判断当前是否为-q指令
-		if(quite) {
-			// 计算丢包率
-			double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
-			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", nsent, quitePackageSuccess, loss);	
-			double quiteAvg = quiteTotal / nsent;
-			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
-			quiteMin, 
-			quiteAvg, 
-			quiteMax, 
-			sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
-	}
+	// 计算丢包率
+	double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
+	printf("\n--- %s ping statistics ---\n", quiteTargetName);
+	printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", nsent, quitePackageSuccess, loss);	
+	double quiteAvg = quiteTotal / nsent;
+	printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
+	quiteMin, 
+	quiteAvg, 
+	quiteMax, 
+	sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
 }
 
 int
@@ -160,13 +157,17 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		tv_sub(tvrecv, tvsend);
 		rtt = tvrecv->tv_sec * 1000.0 + tvrecv->tv_usec / 1000.0;
 
+		/* 统计rrt的min max avg mdev信息 */
 		if(rtt > quiteMax)
 			quiteMax = rtt;
 		if(rtt < quiteMin)
 			quiteMin = rtt;
 		quiteTotal += rtt;
 		quiteTotalSquare += rtt * rtt;
-		
+
+		/* 统计成功传输的数据包个数 */
+		if(!icmp->icmp_type && !icmp->icmp_code)
+			quitePackageSuccess++;	
 
 		/* 打印信息 */
 		if(!quite) {
@@ -182,16 +183,7 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 				icmplen, Sock_ntop_host(pr->sarecv, pr->salen),
 				icmp->icmp_type, icmp->icmp_code);
 	}
-
-	/* 设置了-q（安静输出）*/
-	else if (quite) {
-		// icmp->icmp_seq + 1 即传输包总数
-		// quitePackageTotal = icmp->icmp_seq + 1; 
-
-		// icmp->icmp_type = 8 的个数即传输成功的包的个数
-		if(icmp->icmp_type == 8)
-			quitePackageSuccess++;
-	}
+		
 }
 
 void
@@ -351,7 +343,7 @@ readloop(void)
 	 * 循环结束
 	 * 若处于-q则应该输出结果
 	 */
-	signal(SIGINT, quiteShowResult);
+	signal(SIGINT, showResult);
 	/* 
 	 * 无限循环
 	 * 读入返回的每个分组
