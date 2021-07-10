@@ -72,6 +72,9 @@ double max_time = -1;
 double avg_time = -1;
 double stddev_time = -1;
 
+int has_received = 1;
+int broadcast;
+
 //标志量
 int ttl_flag;
 

@@ -51,6 +51,9 @@ void showResult(int sig) {
 		quiteAvg, 
 		quiteMax, 
 		sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
+
+	close(sockfd);
+	exit(1);
 }
 
 int
@@ -79,13 +82,20 @@ main(int argc, char **argv)
 		case 'q':
 			quite++;
 			break;
+		case 'b':
+			broadcast = 1;
+			break;
 		case '?':
 			err_quit("unrecognized option: %c", c);
+		default:
+			show_help();
 		}
+
 	}
 
-	if (optind != argc - 1)
-		err_quit("usage: ping [ -v ] <hostname>");
+	if (optind != argc - 1) {
+		show_help();
+	}
 		
 	host = argv[optind];	// optind = argc - 1 目的 hostname / IP地址	 
 
@@ -176,6 +186,8 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 		/* 统计成功传输的数据包个数 */
 		if(!icmp->icmp_type && !icmp->icmp_code)
 			quitePackageSuccess++;	
+		
+		has_received = 1;
 
 		/* 打印信息 */
 		if(!quite) {
@@ -272,11 +284,14 @@ send_v4(void)
 	int			len;
 	struct icmp	*icmp;
 
+	if ((!quite) && (!has_received)) printf("Request timeout for icmp_seq %d\n", nsent - 1);
+
 	icmp = (struct icmp *) sendbuf;
 	icmp->icmp_type = ICMP_ECHO;		//ICMP回显请求
 	icmp->icmp_code = 0;				//code值为0
 	icmp->icmp_id = pid;
 	icmp->icmp_seq = nsent++;			//本报的序列号，唯一递增。
+
 	gettimeofday((struct timeval *) icmp->icmp_data, NULL);		//gettimeofday()会把目前的时间有tv所指的结构返回，当地时区的信息则放到tz所指的结构中。
 
 	len = 8 + datalen;		/* checksum ICMP header and data */		// 总长度 默认datelen为56字节 + 1字节类型 + 1字节code + 2字节校验和
@@ -284,6 +299,7 @@ send_v4(void)
 	icmp->icmp_cksum = 0;				//cksum先填0，便于之后的cksum计算
 	icmp->icmp_cksum = in_cksum((u_short *) icmp, len);		//计算校验和
 
+	has_received = 0;
 	sendto(sockfd, sendbuf, len, 0, pr->sasend, pr->salen);
 	/*
 		sockfd为套接口描述字，sendbuf为发送数据缓冲区，len是发送数据缓冲区大小
@@ -339,9 +355,11 @@ readloop(void)
 		SOL_SOCKET为操作套接口层的选项，SO_RCVBUF为optname表示接收缓冲区大小，size为optval 
 		int
 	*/
-	if (ttl_flag) {
+	if (ttl_flag == 1) {
 		setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) ;
-		
+	}
+	if (broadcast == 1) {
+		setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
 	}
 	/* 
 	 * 发送第一个分组
