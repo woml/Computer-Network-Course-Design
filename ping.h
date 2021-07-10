@@ -98,9 +98,6 @@ struct proto {
   void	 (*fsend)(void);
   struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */ //sockaddr send -> sasend
   struct sockaddr  *sarecv;	/* sockaddr{} for receiving */              //sockaddr recive -> sarecv
-  /* 两个套接字地址结构指针 */
-  struct sockaddr  *sasend;	/* sockaddr{} for send, from getaddrinfo */
-  struct sockaddr  *sarecv;	/* sockaddr{} for receiving */
 
   /* 这两个套接字地址结构的大小及ICMP的协议值 */
   socklen_t	    salen;		/* length of sockaddr{}s */
