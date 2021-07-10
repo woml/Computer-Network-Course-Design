@@ -22,10 +22,6 @@ optopt 表示不在选项字符串optstring中的选项（
 // 指示停止的指示位
 int quitFlag = 0;
 
-// // 记录安静模式下的起止时间
-// __suseconds_t quiteStart;
-// __suseconds_t quiteEnd;
-
 // 记录rtt情况
 double quiteMin = (double)INT32_MAX;
 double quiteMax = -1.0;
@@ -41,20 +37,20 @@ void showResult(int sig) {
 	time_pass = end_time.tv_sec * 1000.0 + end_time.tv_usec / 1000.0;
 
 	quitFlag = 1;
-	// 判断当前是否为-q指令
-		if(quite) {
-			// 计算丢包率
-			double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
-			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
-																	, quitePackageSuccess, loss, time_pass);	
-			double quiteAvg = quiteTotal / nsent;
-			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
-			quiteMin, 
-			quiteAvg, 
-			quiteMax, 
-			sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
-	}
+	// 计算丢包率
+	double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
+	printf("\n--- %s ping statistics ---\n", quiteTargetName);
+	printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
+															, quitePackageSuccess, loss, time_pass);	
+	double quiteAvg = quiteTotal / nsent;
+	if(quiteMin == (double)INT32_MAX || quiteMin == -1.0)
+		;
+	else
+		printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
+		quiteMin, 
+		quiteAvg, 
+		quiteMax, 
+		sqrt((quiteTotalSquare / quiteTotal) - quiteAvg * quiteAvg));
 }
 
 int
@@ -99,7 +95,7 @@ main(int argc, char **argv)
 	 */
 	ai = host_serv(host, NULL, 0, 0);
 
-	// 向安静模式传输IP或者主机名
+	// 传输IP或者主机名
 	quiteTargetName = ai->ai_canonname;
 	printf("ping %s (%s): %d data bytes\n", ai->ai_canonname,
 		Sock_ntop_host(ai->ai_addr, ai->ai_addrlen), datalen);
@@ -155,10 +151,6 @@ proc_v4(char *ptr, ssize_t len, struct timeval *tvrecv)
 
 	if (icmp->icmp_type == ICMP_ECHOREPLY) {	/*ICMP包类型为ICMP_ECHOREPLY（也就是reply）*/
 		if (icmp->icmp_id != pid)	//进程不是本进程PID 退出
-	/* 
-	 * 检查标识符字段
-	 * 判断该应答是否是本进程发出的请求
-	 */
 			return;			/* not a response to our ECHO_REQUEST */
 		if (icmplen < 16)
 			err_quit("icmplen (%d) < 16", icmplen);
@@ -349,7 +341,6 @@ readloop(void)
 	 */
 	sig_alrm(SIGALRM);		/* send first packet */
 
-	
 	/* 
 	 * 循环结束
 	 * 若处于-q则应该输出结果
@@ -359,7 +350,7 @@ readloop(void)
 	 * 无限循环
 	 * 读入返回的每个分组
 	 */
-	for ( ; !quitFlag; ) {
+	for ( ; ; ) {
 		len = pr->salen;
 		n = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, pr->sarecv, &len);
 		/*
@@ -379,8 +370,12 @@ readloop(void)
 		 * 记录分组收取时刻
 		 * 调用合适的协议函数（proc_v4或者proc_v6）处理包含在该分组中的ICMP消息
 		 */
-		gettimeofday(&tval, NULL);
-		(*pr->fproc)(recvbuf, n, &tval);
+		if(quitFlag)
+			break;
+		else {
+			gettimeofday(&tval, NULL);
+			(*pr->fproc)(recvbuf, n, &tval);
+		}
 	}
 }
 
