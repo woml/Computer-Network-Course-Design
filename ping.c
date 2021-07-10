@@ -22,9 +22,9 @@ optopt 表示不在选项字符串optstring中的选项（
 // 指示停止的指示位
 int quitFlag = 0;
 
-// 记录安静模式下的起止时间
-__suseconds_t quiteStart;
-__suseconds_t quiteEnd;
+// // 记录安静模式下的起止时间
+// __suseconds_t quiteStart;
+// __suseconds_t quiteEnd;
 
 // 记录安静模式下的rtt情况
 double quiteMin = (double)INT32_MAX;
@@ -34,13 +34,20 @@ double quiteTotalSquare = 0.0;
 
 // -q模式下接收到ctrl+c指令后输出结果的函数
 void quiteShowResult(int sig) {
+	struct timeval end_time;
+	double time_pass;
+	gettimeofday(&end_time, NULL);
+	tv_sub(&end_time, &start_time);
+	time_pass = end_time.tv_sec * 1000.0 + end_time.tv_usec / 1000.0;
+
 	quitFlag = 1;
 	// 判断当前是否为-q指令
 		if(quite) {
 			// 计算丢包率
 			double loss = (double)(nsent - quitePackageSuccess) / nsent * 100;
 			printf("\n--- %s ping statistics ---\n", quiteTargetName);
-			printf("%d packats transmitted, %d received, %.0lf%% packet loss\n", nsent, quitePackageSuccess, loss);	
+			printf("%d packats transmitted, %d packets received, %.0lf%% packets loss, time %.2fms\n", nsent
+																	, quitePackageSuccess, loss, time_pass);	
 			double quiteAvg = quiteTotal / nsent;
 			printf("rtt min/avg/max/medv = %.3lf ms/%.3lf ms/%.3lf ms/%.3lf ms\n", 
 			quiteMin, 
@@ -84,6 +91,7 @@ main(int argc, char **argv)
 	pid = getpid();
 	signal(SIGALRM, sig_alrm);
 
+	gettimeofday(&start_time, NULL);
 	/*
 	 * 处理主机名参数
 	 * 命令行中必须有一个主机名获IP地址参数，由host_serv处理
