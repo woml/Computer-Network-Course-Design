@@ -53,6 +53,8 @@ long quiteTransferTime = 0; // 传送数据包过程的时间
 char *quiteTargetName; // 目标主机的IP或者主机名
 int daemon_proc;            /* set nonzero by daemon_init() */
 
+struct timeval start_time;
+
 const char *usage = 
   "usage: ping [-bhqvt:] <hostname>\n \
   -h Show help information\n \
