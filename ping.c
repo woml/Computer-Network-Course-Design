@@ -73,8 +73,13 @@ main(int argc, char **argv)
 			show_help();
 			break;
 		case 't':
-			ttl = strtol(optarg, &end, 10);		//取得数字部分
+			sscanf(optarg, "%d", &ttl);		//取得数字部分
+			//printf("%d", ttl);		//测试读入
+			if (ttl < 0 || ttl > 255) {
+				err_quit("Illegal ttl value (must be in 0 ~ 255) -> %s",optarg);
+			}
 			ttl_flag = 1;
+			break;
 		case 'q':
 			quite++;
 			break;
@@ -333,7 +338,7 @@ readloop(void)
 
 	sockfd = socket(pr->sasend->sa_family, SOCK_RAW, pr->icmpproto);	// SOCK_RAW 提供原始网络协议访问
 	/* 船舰一个合适协议的原始套接字 */
-	sockfd = socket(pr->sasend->sa_family, SOCK_RAW, pr->icmpproto);
+	//sockfd = socket(pr->sasend->sa_family, SOCK_RAW, pr->icmpproto);
 	setuid(getuid());		/* don't need special permissions any more */
 
 	/* 
@@ -347,7 +352,10 @@ readloop(void)
 		SOL_SOCKET为操作套接口层的选项，SO_RCVBUF为optname表示接收缓冲区大小，size为optval 
 		int
 	*/
-
+	if (ttl_flag) {
+		setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) ;
+		
+	}
 	/* 
 	 * 发送第一个分组
 	 * 调度下一个SIGALRM信号在1秒后产生
