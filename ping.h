@@ -68,6 +68,7 @@ int op;     //操作
 int broadcast;
 int ttl;
 int count;
+int interval = 1;
 double min_time = -1;
 double max_time = -1;
 double avg_time = -1;
@@ -79,6 +80,7 @@ int broadcast;
 //标志量
 int ttl_flag;
 int count_flag;
+int interval_flag;
 
 /* function prototypes */
 void	 proc_v4(char *, ssize_t, struct timeval *);

@@ -63,7 +63,7 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "qhbvt:c:")) != -1) {
+	while ( (c = getopt(argc, argv, "qhbvt:c:i:")) != -1) {
 		switch (c) {
 		case 'c':
 			sscanf(optarg, "%d", &count);		//取得数字部分
@@ -71,6 +71,13 @@ main(int argc, char **argv)
 				err_quit("Illegal count value (must bigger than 0) -> %s", optarg);
 			}
 			count_flag = 1;
+			break;
+		case 'i':
+			sscanf(optarg, "%d", &interval);		//取得数字部分
+			if (interval <= 0) {
+				err_quit("Illegal interval value (must bigger than 0) -> %s", optarg);
+			}
+			interval_flag = 1;
 			break;
 		case 'v':
 			verbose++;
@@ -422,7 +429,7 @@ sig_alrm(int signo)
 {
         (*pr->fsend)();
 
-        alarm(1);
+        alarm(interval);
         return;         /* probably interrupts recvfrom() */
 }
 
