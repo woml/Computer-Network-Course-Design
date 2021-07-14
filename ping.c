@@ -60,7 +60,7 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "qhbvt:c:i:s:")) != -1) {
+	while ( (c = getopt(argc, argv, "bc:hi:qs:t:v")) != -1) {
 		switch (c) {
 		case 'c':
 			sscanf(optarg, "%d", &count);		//取得数字部分
@@ -587,9 +587,9 @@ err_sys(const char *fmt, ...)
         va_list         ap;		//变长参数
 
         va_start(ap, fmt);
-		//printf("YES\n");
         err_doit(1, LOG_ERR, fmt, ap);
         va_end(ap);
+		printf("Are you run ping as root or super user? Please try again.\n");
         exit(1);
 }
 

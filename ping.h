@@ -56,16 +56,18 @@ int daemon_proc;            /* set nonzero by daemon_init() */
 struct timeval start_time;
 
 const char *usage = 
-  "usage: ping [-bhqvt:] <hostname>\n \
-  -h Show help information\n \
-  -v Normal mode\n \
-  -b Broadcast\n \
-  -t ttl Set TTL(0~255)\n \
-  -q Quiet mode\n";
+  "usage: ping [-bc:hi:qs:t:v] <hostname>\n \
+  -b\t\t: Broadcast\n \
+  -c counts\t: Stop after counts\n \
+  -h\t\t: Show help information\n \
+  -i num\t: Set interval seconds\n \
+  -q\t\t: Quiet mode\n \
+  -s size\t: Set packet size\n \
+  -t ttl\t: Set TTL(0~255)\n \
+  -v\t\t: Verbose mode\n";
 
 
 int op;     //操作
-int broadcast;
 int ttl;
 int count;
 int datalen = 56;    // 回射请求发送的可选数据量长度
@@ -76,11 +78,11 @@ double avg_time = -1;
 double stddev_time = -1;
 
 int has_received = 1;
-int broadcast;
+int broadcast = 0;
 
 //标志量
-int ttl_flag;
-int count_flag;
+int ttl_flag = 0;
+int count_flag = 0;
 
 /* function prototypes */
 void	 proc_v4(char *, ssize_t, struct timeval *);
