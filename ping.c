@@ -380,9 +380,6 @@ readloop(void)
 	if (ttl_flag == 1) {
 		setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) ;
 	}
-	if (broadcast == 1) {
-		setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
-	}
 	if (debug == 1) {
 		setsockopt(sockfd, SOL_SOCKET, SO_DEBUG, &broadcast, sizeof(broadcast));
 	}
