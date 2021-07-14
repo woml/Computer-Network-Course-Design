@@ -63,8 +63,15 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "qhbvt:")) != -1) {
+	while ( (c = getopt(argc, argv, "qhbvt:c:")) != -1) {
 		switch (c) {
+		case 'c':
+			sscanf(optarg, "%d", &count);		//取得数字部分
+			if (count <= 0) {
+				err_quit("Illegal count value (must bigger than 0) -> %s", optarg);
+			}
+			count_flag = 1;
+			break;
 		case 'v':
 			verbose++;
 			break;
@@ -377,6 +384,10 @@ readloop(void)
 	 * 读入返回的每个分组
 	 */
 	for ( ; ; ) {
+		if (nsent == count) {
+			showResult(SIGINT);
+		}
+
 		len = pr->salen;
 		n = recvfrom(sockfd, recvbuf, sizeof(recvbuf), 0, pr->sarecv, &len);
 		/*
