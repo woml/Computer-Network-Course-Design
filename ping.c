@@ -10,9 +10,6 @@ struct proto	proto_v4 = { proc_v4, send_v4, NULL, NULL, 0, IPPROTO_ICMP };
 struct proto	proto_v6 = { proc_v6, send_v6, NULL, NULL, 0, IPPROTO_ICMPV6 };
 #endif
 
-/* 回射请求发送的可选数据量长度 */
-int	datalen = 56;		/* data that goes with ICMP echo request */
-
 /*
 optarg 保存选项的参数
 optind 检索下一个参数	初值为1
@@ -63,7 +60,7 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "qhbvt:c:i:")) != -1) {
+	while ( (c = getopt(argc, argv, "qhbvt:c:i:s:")) != -1) {
 		switch (c) {
 		case 'c':
 			sscanf(optarg, "%d", &count);		//取得数字部分
@@ -77,7 +74,12 @@ main(int argc, char **argv)
 			if (interval <= 0) {
 				err_quit("Illegal interval value (must bigger than 0) -> %s", optarg);
 			}
-			interval_flag = 1;
+			break;
+		case 's':
+			sscanf(optarg, "%d", &datalen);		//取得数字部分
+			if (datalen <= 0) {
+				err_quit("Illegal data length (must bigger than 0) -> %s", optarg);
+			}
 			break;
 		case 'v':
 			verbose++;
@@ -391,7 +393,8 @@ readloop(void)
 	 * 读入返回的每个分组
 	 */
 	for ( ; ; ) {
-		if (nsent == count) {
+
+		if (count_flag && nsent == count) {
 			showResult(SIGINT);
 		}
 
@@ -430,6 +433,11 @@ sig_alrm(int signo)
         (*pr->fsend)();
 
         alarm(interval);
+
+		if (count_flag && nsent > count) {
+			showResult(SIGINT);
+		}
+		
         return;         /* probably interrupts recvfrom() */
 }
 
