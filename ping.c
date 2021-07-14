@@ -60,7 +60,7 @@ main(int argc, char **argv)
 	struct addrinfo	*ai;
 	char *end;
 	opterr = 0;		/* don't want getopt() writing to stderr */
-	while ( (c = getopt(argc, argv, "bc:hi:qs:t:v")) != -1) {
+	while ( (c = getopt(argc, argv, "bc:dhi:qrs:t:v")) != -1) {
 		switch (c) {
 		case 'c':
 			sscanf(optarg, "%d", &count);		//取得数字部分
@@ -100,6 +100,12 @@ main(int argc, char **argv)
 			break;
 		case 'b':
 			broadcast = 1;
+			break;
+		case 'r':
+			noroute = 1;
+			break;
+		case 'd':
+			debug = 1;
 			break;
 		case '?':
 			err_quit("unrecognized option: %c", c);
@@ -373,6 +379,15 @@ readloop(void)
 	*/
 	if (ttl_flag == 1) {
 		setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl)) ;
+	}
+	if (broadcast == 1) {
+		setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+	}
+	if (debug == 1) {
+		setsockopt(sockfd, SOL_SOCKET, SO_DEBUG, &broadcast, sizeof(broadcast));
+	}
+	if (noroute == 1) {
+		setsockopt(sockfd, SOL_SOCKET, SO_DONTROUTE, &broadcast, sizeof(broadcast));
 	}
 	if (broadcast == 1) {
 		setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));

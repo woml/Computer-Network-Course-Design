@@ -56,12 +56,14 @@ int daemon_proc;            /* set nonzero by daemon_init() */
 struct timeval start_time;
 
 const char *usage = 
-  "usage: ping [-bc:hi:qs:t:v] <hostname>\n \
+  "usage: ping [-bc:dhi:qrs:t:v] <hostname>\n \
   -b\t\t: Broadcast\n \
   -c counts\t: Stop after counts\n \
+  -d\t\t: Set SO_DEBUG bit for debugging\n \
   -h\t\t: Show help information\n \
   -i num\t: Set interval seconds\n \
   -q\t\t: Quiet mode\n \
+  -r\t\t: Send directly and bypass the routing tables\n \
   -s size\t: Set packet size\n \
   -t ttl\t: Set TTL(0~255)\n \
   -v\t\t: Verbose mode\n";
@@ -79,6 +81,8 @@ double stddev_time = -1;
 
 int has_received = 1;
 int broadcast = 0;
+int noroute = 0;
+int debug = 0;
 
 //标志量
 int ttl_flag = 0;
